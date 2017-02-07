@@ -38,7 +38,11 @@ def telemetry(sid, data):
         print("about to call predict")
         image_array = cv2.resize(image_array, (200, 66) )
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
-        throttle = 0.2
+        throttle = 0.20
+        if float(speed) < 10.0:
+            throttle = 0.75
+        elif float(speed) < 15:
+            throttle = 0.50
         print(steering_angle, throttle)
         send_control(steering_angle, throttle)
 
