@@ -54,8 +54,8 @@ def load_model(path):
 
 #epochs=75
 #epochs=20
-#epochs=5
-epochs=20
+epochs=5
+#epochs=20
 #epochs=12
 def train():
         #
