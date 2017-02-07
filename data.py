@@ -17,7 +17,8 @@ steering_camera_offset = 0.15
 #steering_camera_offset = 0.08
 
 #
-#  this function opens the training data, and loads it
+#  this function opens the training data, and returns two
+#  lists, one with the image paths, and one with the steering angles
 #
 
 def  loadTraining():
@@ -104,12 +105,9 @@ def augment_brightness_camera_images(image):
     return image1
 
 
-#AJS
-#def get_dataset(func):
-#    images= [func(x) for x in train_xs]
-#    return images, train_ys
-
-
+#
+# This function crops the image - it didn't seem to help so it isn't used
+#
 def cropImage(image):
     if cropImage:
       top_crop = 55
@@ -119,6 +117,10 @@ def cropImage(image):
     
 
 
+#
+# this function rotates and scales the image 
+#
+# it randomly scales it +/- 1.02 and +/- 1 degree
 
 # from http://docs.opencv.org/trunk/da/d6e/tutorial_py_geometric_transformations.html
 def rotateAndScaleImage(image):
@@ -130,6 +132,10 @@ def rotateAndScaleImage(image):
     M = cv2.getRotationMatrix2D((cols/2,rows/2),rotation,scale)
     image = cv2.warpAffine(image,M,(cols,rows))
     return image
+
+#
+#  This function translates the image randmonly between -2 and 2 pixels in each direction
+#
 
 def translateImage(image):
     trans = 2
@@ -157,19 +163,37 @@ def processImagePixels(image):
     image = cv2.resize(image, (200, 66) )
     return image
 
+# open image image from disk
 def openImage(name):
    image = np.array(Image.open(name))
    return image
 
+# open the image, and call the image pipeline
 def processImage(name):
    image = openImage(name)
    return processImagePixels(image)
- 
 
+# open the image, resize, don't augment 
+def processImageValidation(name):
+   image = openImage(name)
+   # resize for the nvidia model 200x66
+   image = cv2.resize(image, (200, 66) )
+   return image
+
+# adjust the steering angle if needed
+# this is adding some random noise 
 def yFunc(y):
    y= y+ np.random.normal (0, 0.005)
    return y 
-   
+ 
+#
+# the generator takes the image paths, steering angles, and two functions
+# the functions process the steering angle, and the image pipeline
+# 
+# because the X_items are image paths, this function will open and augment
+# the image each time it needs to fill the returning batch array with an image
+# we might be able to speed this up by passing in an array of preloaded images
+# but that would use more memory
 def generator(X_items,y_items,batch_size,x_func=processImage,y_func=yFunc):
   #print("inside generator")
   num_items = len(X_items) -1
@@ -182,15 +206,20 @@ def generator(X_items,y_items,batch_size,x_func=processImage,y_func=yFunc):
       this_image_index = random.randint (0, num_items)
       image = x_func(X_items[this_image_index])
       steering = y_func(y_items[this_image_index])
+      # flip the image and steering angle half the time
       if (random.uniform (0, 1) > 0.5):
             image = cv2.flip (image, 1)
             steering = - steering
-      steering = steering + np.random.normal (0, 0.005)
       y.append(steering)
       X.append(image)
     yield np.asarray(X), np.asarray(y)
 
-def getValidationDataset(val_xs,val_ys,func=processImage):
+#
+# This function returns an array of images and steering angles. It is passed in
+# an array of image paths and steering angles
+# it probably should call the steering function to alter it if needed - this code
+# doesn't alter the steering angle much
+def getValidationDataset(val_xs,val_ys,func=processImageValidation):
     images= [func(x) for x in val_xs]
     return np.array(images), np.array(val_ys)
 

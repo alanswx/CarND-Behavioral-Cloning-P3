@@ -22,6 +22,8 @@ def nvidia_net():
     model = Sequential()
     #p=0.33
     p=0.5
+    # this lambda function normalizes the values (0-255 to -1 to 1 of each pixel)
+    # SullyChen used 66x200 color images. I tried a different model with grayscale, and that worked well too
     model.add(Lambda(lambda x: x/127.5 - 1., input_shape=(66,200,3), output_shape=(66,200,3)))
     model.add(Convolution2D(24, 5, 5, init = 'normal', subsample= (2, 2), name='conv1_1', border_mode='valid'))
     model.add(Activation('relu'))
@@ -63,7 +65,7 @@ def load_model(path):
 
 #epochs=75
 #epochs=20
-epochs=5
+epochs=20
 #epochs=20
 #epochs=12
 def train():
@@ -96,25 +98,33 @@ def train():
         xs,ys = data.loadTraining()
 
 
-        # split the dataset into training and validation
+        # split the dataset into training and validation  80% / 20%
         train_xs = xs[:int(len(xs) * 0.8)]
         train_ys = ys[:int(len(xs) * 0.8)]
 
         val_xs = xs[-int(len(xs) * 0.2):]
         val_ys = ys[-int(len(xs) * 0.2):]
 
-        # load the validation dataset, it is better not to have to use a generator
-        X, y = data.getValidationDataset(val_xs,val_ys,data.processImage)
+        # load the validation dataset, it is better not generate an image each time - process them once
+        # Use the validation process function, it doesn't augment the image, just resizes it
+        X, y = data.getValidationDataset(val_xs,val_ys,data.processImageValidation)
+
+
         print (model.summary())
         print ("Loaded validation datasetset")
-        print ("Total of", len(y) * 4)
+        print ("Total of", len(train_ys))
         print ("Training..")
+
+
         checkpoint_path="weights.{epoch:02d}-{val_loss:.2f}.hdf5"
         checkpoint = ModelCheckpoint(checkpoint_path, verbose=1, save_best_only=False, save_weights_only=False, mode='auto')
+
+	# I tried using the earlystopping callback, but now I run it for a fixed number of epochs and test to see which is best
         earlystopping =  EarlyStopping(monitor='val_loss', min_delta=0, patience=2, verbose=1, mode='auto')
 
         res=model.fit_generator(data.generator(train_xs,train_ys,256), validation_data = (X, y), samples_per_epoch = 100*256, nb_epoch=epochs, verbose = 1  ,callbacks = [ SaveModel()])
 
+        # pickle and dump the history so we can graph it in a notebook
         history=res.history
         with open('history.p','wb') as f:
            pickle.dump(history,f)
