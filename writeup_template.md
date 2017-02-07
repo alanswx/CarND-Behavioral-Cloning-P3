@@ -1,9 +1,4 @@
 #**Behavioral Cloning** 
-
-##Writeup Template
-
-###You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
 ---
 
 **Behavrioal Cloning Project**
@@ -18,7 +13,7 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/placeholder.png "Model Visualization"
+[image1]: ./carmodel.png "Model Visualization"
 [image2]: ./examples/placeholder.png "Grayscaling"
 [image3]: ./examples/placeholder_small.png "Recovery Image"
 [image4]: ./examples/placeholder_small.png "Recovery Image"
@@ -38,7 +33,10 @@ My project includes the following files:
 * model.py containing the script to create and train the model
 * drive.py for driving the car in autonomous mode
 * model.h5 containing a trained convolution neural network 
-* writeup_report.md or writeup_report.pdf summarizing the results
+* writeup_report.md summarizing the results
+* data.py contains functions to load training data, augment images, and the generator
+* DataExplorer.ipynb imports data.py and is used to visualize and debug the image augmentation pipeline
+
 
 ####2. Submssion includes functional code
 Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing 
@@ -54,43 +52,52 @@ The model.py file contains the code for training and saving the convolution neur
 
 ####1. An appropriate model arcthiecture has been employed
 
-My model consists of a convolution neural network with 3x3 filter sizes and depths between 32 and 128 (model.py lines 18-24) 
+My model is based on a variant of the NVIDIA paper. I started with http://github.com/SullyChen/Autopilot-TensorFlow/ and https://github.com/jacobgil/keras-steering-angle-visualizations
+I added DropOut (I tried 33% and 50%), and converted the code so that it stuck to Keras - removing some TensorFlow dependencies that were in that implementation.  
 
-The model includes RELU layers to introduce nonlinearity (code line 20), and the data is normalized in the model using a Keras lambda layer (code line 18). 
+The network starts with a Lambda layer to normalize the image data.  It converts the image values from 0-255 to +/-1. 
+
+The model then includes 5 Convolution layers.  The first two are 5x5 filter sizes with depths 24, 36, 48. Then the filters are reduced to 3x3 at depths of 64.  Following the Convolution layers are a series of Fully connected layers - 1164, 100, 50, 10.  All of these layers are activated with RELU to add nonlinearity. 
+
+The last fully connected layer outputs one value with a tanh activation. It represents the steering angle from -1 to 1.
+
 
 ####2. Attempts to reduce overfitting in the model
 
-The model contains dropout layers in order to reduce overfitting (model.py lines 21). 
+The model contains dropout layers in order to reduce overfitting
 
-The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 10-16). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
+The model was trained and validated on different data sets to ensure that the model was not overfitting. The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
 
 ####3. Model parameter tuning
 
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 25).
+The model used an adam optimizer, so the learning rate was not tuned manually 
 
 ####4. Appropriate training data
 
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road ... 
+I spent a good amount of time collecting training data. I ended up only using the udacity provided training data. Mostly this was because I was able to get good results with it.  My training data was in a slightly different format, and I didn't get around to converting it and merging it all into one set. 
 
-For details about how I created the training data, see the next section. 
 
 ###Model Architecture and Training Strategy
 
 ####1. Solution Design Approach
 
-The overall strategy for deriving a model architecture was to ...
+Before starting the self driving car ND I tried to work on Challenge 2. During this time, I came to the realization that I needed to take the ND more than ever. I didn't make it far at all.  However, I did download a bunch of other people's models, train them with their data and run their visualizers.  Sully Chen's stood out as one of the best, and fairly simple. 
 
-My first step was to use a convolution neural network model similar to the ... I thought this model might be appropriate because ...
+When tackling this project I first started by downloading and trying to adapt models from Sully Chen (an NVIDIA style model), Comma AI, as well as a few of the solutions to Challenge 2.  
 
-In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting. 
+I feel like I wasted a lot of time, because I didn't build a good debugging pipeline.  It turned out that most of my time was spent tweaking with parameters (epoch, batch size, samples per epoch, etc). However, when I finally built a nice python notebook (included) to visualize the stages of my augmentation pipeline - I realized that I wasn't really augmenting the images well, I was mostly breaking them and putting weird noise in.  I had two major problems -- not realizing that cv2 image open was BGR not RGB, and I was using a grayscale image brightness algorithm instead of a color one (converting to HSV and back).  Through this process I also built a version with grayscale that worked quite nicely.  It was more of a challenge to get the color one working though, I just couldn't understand why it didn't work until I looked at each image.
 
-To combat the overfitting, I modified the model so that ...
+When things didn't work well the validation error often didn't improve, or would stay exactly the same.  
 
-Then I ... 
+After feedback from the Traffic sign project, I tried implementing EarlyStopping, and using the built in model saver. After reading a bunch of posts on the forums, people tended to say that the validation error was less important than the results in the simulator. Therefore I save all of the results, and test the ones that seem to have low validation, before the validation just flattens. I also have a graph of the validation results in the python notebook.
 
-The final step was to run the simulator to see how well the car was driving around track one. There were a few spots where the vehicle fell off the track... to improve the driving behavior in these cases, I ....
+In order not to overfit - there is a combination of a heavy dropout, as well as lots of image augmentation. Each time a batch of images is created, I randomly modify the brightness, rotate, scale, and translate the images.  
+
+The hardest part of the track was the parking lot after the bridge. The car kept wanting to go into the parking lot. After I added the randomized brightness - it seems much better at avoiding the parking lot.
 
 At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
+
+The car does well on the second track, but doesn't seem to complete the track. After one training run it did complete the track. I am not sure why it doesn't anymore. I am tempted to change the validation dataset to 0% (use all the data as training data) and see if it improves.
 
 ####2. Final Model Architecture
 
