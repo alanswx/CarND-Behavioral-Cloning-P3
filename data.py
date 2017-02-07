@@ -147,9 +147,6 @@ def translateImage(image):
     return image
 
 def processImagePixels(image):
-    #grab the height and width of the image
-    (h, w) = image.shape[:2]
-
     # cropping the image didn't help
     #image = cropImage(image)
 
