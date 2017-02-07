@@ -105,13 +105,18 @@ The final model architecture (model.py lines 18-24) consisted of a convolution n
 
 Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
 
+![png](car_model.png)
+
+
 ![alt text][image1]
 
 ####3. Creation of the Training Set & Training Process
 
 Creating my own dataset (which I didn't use)
 
-AJS TODO FILL THIS IN
+I used a logitech steering wheel that I had left over from my playstation 2. It worked nicely to control the car and give smooth steering angles. I drove straight, and unfortunately kept bumping into the sides of the road. I wrote some pygame code to visualize the video. I recorded the "in and out" numbers and wrote some code to splice the file into a new file, so that I could use the training data. 
+
+Because it was faster, I ended up in parallel training the model using only the udacity data. It worked well, but started to go into the parking lot after the bridge. I thought that I needed to collect more training data. I was planning on adding a bunch of samples driving near the parking lot. However, before I got to do that, I saw a post about modifying the brightness. Once I added that code, it drove all the way around. It would take another few hours to pull in my own training data, I haven't had the time to do that.  I have been more interested in playing with the parameters and cleaning up the code.
 
 
 Exploring the data from the udacity sample
@@ -172,10 +177,13 @@ The resulting dataset looks like this:
 ![png](examples/output_13_5.png)
 
 The generator creates a batch sized list of images/steering angles by looping through and randomly picking one record from the training dataset. After opening the image, it then calls the augmentation function which:
- 1 adjusts the brightness
- 2 rotates and scales the image
- 3 translates the image
- 4 adjusts the size to 200x66
+ 1. adjusts the brightness
+ 2. rotates and scales the image  +/- 1 degree rotation, +/- 1.02 scale (randomly)
+ 3. translates the image +/- 2 pixels randomly
+ 4. adjusts the size to 200x66
  
+ An Adam optomizer was chosen. I have a large video card, so I tried a batch size of 256, and 100*256 samples per epoch. 20 epochs were fine. From the graph below, it seems like 10 is a good epoch to use.
  
+ ![png](examples/output_14_1.png)
+
 
