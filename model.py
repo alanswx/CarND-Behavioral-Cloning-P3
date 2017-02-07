@@ -8,9 +8,18 @@ import data
 import pickle
 
 
+
+# This model is an NVIDIA Variant. I used SullyChen's ideas, with 
+# jacobgil's keras implementation. Small changes (based on Comma AI) to
+# add in the Lambda and move the regularization step into the model, makes
+# debugging the images much easier
+#http://github.com/SullyChen/Autopilot-TensorFlow/
+#https://github.com/jacobgil/keras-steering-angle-visualizations.git
+#  -- needed to turn dropout back on!
+
+
 def nvidia_net():
     model = Sequential()
-    #lambda?
     #p=0.33
     p=0.5
     model.add(Lambda(lambda x: x/127.5 - 1., input_shape=(66,200,3), output_shape=(66,200,3)))
