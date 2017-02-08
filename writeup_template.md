@@ -11,16 +11,6 @@ The goals / steps of this project are the following:
 * Summarize the results with a written report
 
 
-[//]: # (Image References)
-
-[image1]: ./carmodel.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
-[image3]: ./examples/placeholder_small.png "Recovery Image"
-[image4]: ./examples/placeholder_small.png "Recovery Image"
-[image5]: ./examples/placeholder_small.png "Recovery Image"
-[image6]: ./examples/placeholder_small.png "Normal Image"
-[image7]: ./examples/placeholder_small.png "Flipped Image"
-
 ## Rubric Points
 ###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
 
@@ -36,6 +26,8 @@ My project includes the following files:
 * writeup_report.md summarizing the results
 * data.py contains functions to load training data, augment images, and the generator
 * DataExplorer.ipynb imports data.py and is used to visualize and debug the image augmentation pipeline
+* course_one.mp4 video of the model running through course one
+* course_two.mp4 video of the model running through course two for a bit, then hitting the side wall
 
 
 ####2. Submssion includes functional code
