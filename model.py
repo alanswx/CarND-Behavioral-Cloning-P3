@@ -24,18 +24,24 @@ def nvidia_net():
     p=0.5
     # this lambda function normalizes the values (0-255 to -1 to 1 of each pixel)
     # SullyChen used 66x200 color images. I tried a different model with grayscale, and that worked well too
-    model.add(Lambda(lambda x: x/127.5 - 1., input_shape=(66,200,3), output_shape=(66,200,3)))
+    model.add(Lambda(lambda x: x/127.5 - 1., input_shape=(120,160,3), output_shape=(120,160,3)))
     model.add(Convolution2D(24, 5, 5, init = 'normal', subsample= (2, 2), name='conv1_1', border_mode='valid'))
     model.add(Activation('relu'))
     model.add(Convolution2D(36, 5, 5, init = 'normal', subsample= (2, 2), border_mode='valid',name='conv2_1'))
     model.add(Activation('relu'))
+    #model.add(Dropout(p))
     model.add(Convolution2D(48, 5, 5, init = 'normal', subsample= (2, 2), border_mode='valid',name='conv3_1'))
     model.add(Activation('relu'))
+    #model.add(Dropout(p))
     model.add(Convolution2D(64, 3, 3, init = 'normal', subsample= (1, 1), border_mode='valid',name='conv4_1'))
     model.add(Activation('relu'))
+    #model.add(Dropout(p))
     model.add(Convolution2D(64, 3, 3, init = 'normal', subsample= (1, 1), border_mode='valid',name='conv4_2'))
     model.add(Activation('relu'))
+    #model.add(Dropout(p))
+
     model.add(Flatten())
+
     model.add(Dense(1164, init = 'normal', name = "dense_0"))
     model.add(Activation('relu'))
     model.add(Dropout(p))
@@ -44,7 +50,7 @@ def nvidia_net():
     model.add(Dropout(p))
     model.add(Dense(50, init = 'normal', name = "dense_2"))
     model.add(Activation('relu'))
-    model.add(Dropout(p))
+    #model.add(Dropout(p))
     model.add(Dense(10, init = 'normal', name = "dense_3"))
     model.add(Activation('tanh'))
     model.add(Dense(1, init = 'normal', name = "dense_4"))
@@ -66,7 +72,6 @@ def load_model(path):
 #epochs=75
 #epochs=20
 epochs=20
-#epochs=20
 #epochs=12
 def train():
         #
@@ -122,7 +127,7 @@ def train():
 	# I tried using the earlystopping callback, but now I run it for a fixed number of epochs and test to see which is best
         earlystopping =  EarlyStopping(monitor='val_loss', min_delta=0, patience=2, verbose=1, mode='auto')
 
-        res=model.fit_generator(data.generator(train_xs,train_ys,256), validation_data = (X, y), samples_per_epoch = 100*256, nb_epoch=epochs, verbose = 1  ,callbacks = [ SaveModel()])
+        res=model.fit_generator(data.generator(train_xs,train_ys,256), validation_data = (X, y), samples_per_epoch = 125*256, nb_epoch=epochs, verbose = 1  ,callbacks = [ SaveModel()])
 
         # pickle and dump the history so we can graph it in a notebook
         history=res.history
