@@ -6,6 +6,7 @@ import pickle
 from sklearn.utils import shuffle
 #from keras.preprocessing.image import img_to_array, load_img
 from PIL import Image, ImageEnhance, ImageOps
+import load_data
 
 # some settings to tweak the way the training data is loaded
 
@@ -47,14 +48,47 @@ def parse_img_filepaths(filepaths):
     return result
 
 def loadTraining():
+    inputs='/home/alans/shark/log/*.jpg'
+    xs, ys = load_data.load_dataset(inputs)
+
+    new_xs=[]
+    new_ys=[]
+    remove = 0
+
+    print('orig ',len(xs))
+    for i in range(len(xs)):
+        #if (abs(ys[i][0] < 1) or (abs(ys[i][0] > 29))):
+        if (abs(float(ys[i][0])) < 1e-5):
+        #if (abs(ys[i][0] < 1)):
+            remove=remove+1
+            if (remove==10):
+                remove=0
+                # add 10% of the frames where the steering angle is close to 0
+                new_xs.append(xs[i])
+                new_ys.append(ys[i][0])
+        else:
+            new_xs.append(xs[i])
+            new_ys.append(ys[i][0])
+
+    xs=new_xs
+    ys=new_ys
+    print('after ',len(xs))
+    c = list(zip(xs, ys))
+    random.shuffle(c)
+    xs, ys = zip(*c)
+    print(len(xs))
+    return xs,ys
+
+def loadTraining2():
     #fp1=getFiles("/home/alans/donkey_data/sessions/2017_02_15__07_02_07_PM")
     #fp2=getFiles("/home/alans/donkey_data/sessions/2017_02_15__07_24_32_PM")
     #fp=fp1+fp2
-    fp1=getFiles("/home/alans/donkey_data/sessions/2017_02_17__08_08_30_AM")
-    fp2=getFiles("/home/alans/donkey_data/sessions/2017_02_17__12_56_56_PM")
-    fp3=getFiles("/home/alans/donkey_data/sessions/2017_02_18__07_55_03_AM")
-    fp4=getFiles("/home/alans/donkey_data/sessions/2017_02_18__01_20_31_PM")
+    fp1=getFiles("/home/alans/mydonkey/sessions/2017_02_17__08_08_30_AM")
+    fp2=getFiles("/home/alans/mydonkey/sessions/2017_02_17__12_56_56_PM")
+    fp3=getFiles("/home/alans/mydonkey/sessions/2017_02_18__07_55_03_AM")
+    fp4=getFiles("/home/alans/mydonkey/sessions/2017_02_18__01_20_31_PM")
     fp=fp1+fp2+fp3+fp4
+    #fp=fp1+fp2
     print(len(fp))
     r=parse_img_filepaths(fp)
 
@@ -218,7 +252,7 @@ def processImagePixels(image):
     image = rotateAndScaleImage(image)
     image = translateImage(image)
     # resize for the nvidia model 200x66
-    image = cv2.resize(image, (160, 120) )
+    #image = cv2.resize(image, (160, 120) )
     return image
 
 # open image image from disk
@@ -238,8 +272,8 @@ def processImage(name):
 def processImageValidation(name):
    image = openImage(name)
    # resize for the nvidia model 200x66
-   image = cv2.resize(image, (160, 120) )
-   return image
+   #image = cv2.resize(image, (160, 120) )
+   return image.transpose()
 
 # adjust the steering angle if needed
 # this is adding some random noise 
@@ -272,7 +306,7 @@ def generator(X_items,y_items,batch_size,x_func=processImage,y_func=yFunc):
             image = cv2.flip (image, 1)
             steering = - steering
       y.append(steering)
-      X.append(image)
+      X.append(image.transpose())
     yield np.asarray(X), np.asarray(y)
 
 #
