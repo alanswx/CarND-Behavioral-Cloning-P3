@@ -58,7 +58,8 @@ def loadTraining():
     print('orig ',len(xs))
     for i in range(len(xs)):
         #if (abs(ys[i][0] < 1) or (abs(ys[i][0] > 29))):
-        if (abs(float(ys[i][0])) < 1e-5):
+        #if (abs(float(ys[i][0])) < 1e-5):
+        if (abs(float(ys[i][0])) < 1e-5 or  (abs(ys[i][0] >= 1 ))):
         #if (abs(ys[i][0] < 1)):
             remove=remove+1
             if (remove==10):
@@ -273,7 +274,9 @@ def processImageValidation(name):
    image = openImage(name)
    # resize for the nvidia model 200x66
    #image = cv2.resize(image, (160, 120) )
-   return image.transpose()
+   #return image.transpose()
+   #image = cv2.cvtColor (image, cv2.COLOR_RGB2GRAY)
+   return image
 
 # adjust the steering angle if needed
 # this is adding some random noise 
@@ -306,7 +309,9 @@ def generator(X_items,y_items,batch_size,x_func=processImage,y_func=yFunc):
             image = cv2.flip (image, 1)
             steering = - steering
       y.append(steering)
-      X.append(image.transpose())
+      #X.append(image.transpose())
+      #image = cv2.cvtColor (image, cv2.COLOR_RGB2GRAY)
+      X.append(image)
     yield np.asarray(X), np.asarray(y)
 
 #

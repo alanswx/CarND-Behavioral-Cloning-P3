@@ -1,10 +1,10 @@
 #!/bin/bash
 
-PREFIX=`date +%h%H-%H%M`
+PREFIX=`date +%h%d-%H%M`
 FILES=`ls model-*h5`
 for x in $FILES
 do
-  CMD="cp $x /home/alans/donkey_data/models/AL$PREFIX$x"
+  CMD="cp $x /home/alans/mydonkey/models/AL$PREFIX$x"
   echo $CMD
   $CMD
 done

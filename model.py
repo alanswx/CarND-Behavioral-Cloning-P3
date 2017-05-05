@@ -2,12 +2,17 @@ from keras.models import *
 from keras.callbacks import *
 from keras.layers import Lambda, Convolution2D, Activation, Dropout, Flatten, Dense
 from keras.layers import Dense, Lambda, ELU
+from keras.layers import Dense, Activation, Reshape, Merge
+from keras.layers.pooling import MaxPooling2D, AveragePooling1D
 import keras.backend as K
 import cv2
 import argparse
 import data
 import pickle
 import conf
+
+
+import dmodel
 
 
 # This model is an NVIDIA Variant. I used SullyChen's ideas, with 
@@ -17,6 +22,71 @@ import conf
 #http://github.com/SullyChen/Autopilot-TensorFlow/
 #https://github.com/jacobgil/keras-steering-angle-visualizations.git
 #  -- needed to turn dropout back on!
+def get_bw_model():
+  model = Sequential ([
+        Reshape ((120, 160, 1), input_shape=(120, 160)),
+        #Lambda(lambda x: x/127.5 - 1.,input_shape=(120, 160, 1),output_shape=(120, 160, 1)),
+
+        Convolution2D (24, 8, 8, border_mode='valid'),
+        MaxPooling2D (pool_size=(2, 2)),
+        Dropout (0.5),
+        Activation ('relu'),
+
+        #77x157
+        Convolution2D (36, 5, 5, border_mode='valid'),
+        MaxPooling2D (pool_size=(2, 2)),
+        Dropout (0.5),
+        Activation ('relu'),
+
+        #37x77
+        Convolution2D (48, 5, 5, border_mode='valid'),
+        MaxPooling2D (pool_size=(2, 2)),
+        Dropout (0.5),
+        Activation ('relu'),
+
+        #17x37
+        Convolution2D (64, 3, 3, border_mode='valid'),
+        MaxPooling2D (pool_size=(2, 2)),
+        Dropout (0.5),
+        Activation ('relu'),
+
+        #8x18
+        Convolution2D (64, 2, 2, border_mode='valid'),
+        MaxPooling2D (pool_size=(2, 2)),
+        Dropout (0.5),
+        Activation ('relu'),
+
+        #4x9
+        Flatten (),
+
+        Dense (1024),
+        Dropout (0.5),
+        Activation ('relu'),
+
+        Dense (512),
+        Dropout (0.5),
+        Activation ('relu'),
+
+        Dense (256),
+        Activation ('relu'),
+
+        Dense (128),
+        Activation ('relu'),
+
+        Dense (32),
+        Activation ('tanh'),
+
+        Dense (1)
+  ])
+
+  #optimizer = Adam (lr=1e-4)
+
+  #model.compile (
+  #  optimizer=optimizer,
+  #  loss='mse',
+  #  metrics=[]
+  #)
+  return model
 
 def get_nvidia_model2():
     row, col, ch = conf.row, conf.col, conf.ch
@@ -33,12 +103,12 @@ def get_nvidia_model2():
     model.add(Activation('relu'))
     model.add(Convolution2D(64, 3, 3, subsample=(2, 2), border_mode="same"))
     model.add(Flatten())
-    model.add(Dropout(.2))
     model.add(Activation('relu'))
     model.add(Dense(512))
     model.add(Dropout(.5))
     model.add(Activation('relu'))
     model.add(Dense(256))
+    model.add(Dropout(0.5))
     model.add(Activation('relu'))
     model.add(Dense(128))
     model.add(Activation('tanh'))
@@ -127,8 +197,47 @@ def nvidia_small_net():
 
     return model
     
+def dnet():
+    model = Sequential()
+    #p=0.33
+    p=0.1
+    # this lambda function normalizes the values (0-255 to -1 to 1 of each pixel)
+    # SullyChen used 66x200 color images. I tried a different model with grayscale, and that worked well too
+    model.add(Lambda(lambda x: x/127.5 - 1., input_shape=(120,160,3), output_shape=(120,160,3)))
+    model.add(Convolution2D(24, 5, 5, init = 'normal', subsample= (2, 2), name='conv1_1', border_mode='valid'))
+    model.add(Activation('relu'))
+    model.add(Convolution2D(32, 5, 5, init = 'normal', subsample= (2, 2), border_mode='valid',name='conv2_1'))
+    model.add(Activation('relu'))
+    #model.add(Dropout(p))
+    model.add(Convolution2D(64, 3, 3, init = 'normal', subsample= (2, 2), border_mode='valid',name='conv3_1'))
+    model.add(Activation('relu'))
+    #model.add(Dropout(p))
+    model.add(Convolution2D(64, 3, 3, init = 'normal', subsample= (2, 2), border_mode='valid',name='conv4_1'))
+    model.add(Activation('relu'))
+    #model.add(Dropout(p))
+    #model.add(Convolution2D(64, 3, 3, init = 'normal', subsample= (1, 1), border_mode='valid',name='conv4_2'))
+    #model.add(Activation('relu'))
+    #model.add(Dropout(p))
+
+    model.add(Flatten())
+
+    #model.add(Dense(1164, init = 'normal', name = "dense_0"))
+    model.add(Dense(100, init = 'normal', name = "dense_0"))
+    model.add(Activation('relu'))
+    model.add(Dropout(p))
+    #model.add(Dense(100, init = 'normal',  name = "dense_1"))
+    model.add(Dense(50, init = 'normal',  name = "dense_1"))
+    model.add(Activation('relu'))
+    model.add(Dropout(p))
+    #model.add(Dropout(p))
+    model.add(Dense(15, init = 'normal', name = "dense_3"))
+    model.add(Activation('tanh'))
+    model.add(Dense(1, init = 'normal', name = "dense_4"))
+
+    return model
 def nvidia_smaller_net():
     model = Sequential()
+    model.ch_order = 'channel_last'
     #p=0.33
     p=0.5
     # this lambda function normalizes the values (0-255 to -1 to 1 of each pixel)
@@ -214,17 +323,23 @@ def nvidia_smallest_net():
 
 def get_model():
     #model = nvidia_net()
+    model = nvidia_smaller_net()
     #model = nvidia_smallest_net()
+    #model = dmodel.getdmodel()
+    #model = get_bw_model()
     #model = get_nvidia_model()
-    model = get_nvidia_model2()
+    #model = get_nvidia_model2()
     model.compile(loss = 'mse', optimizer = 'Adam')
     return model
 
 def load_model(path):
     #model = nvidia_net()
+    model = nvidia_smaller_net()
     #model = nvidia_smallest_net()
+    #model = dmodel.getdmodel()
+    #model = get_bw_model()
     #model = get_nvidia_model()
-    model = get_nvidia_model2()
+    #model = get_nvidia_model2()
     model.load_weights(path)
     model.compile(loss = 'mse', optimizer = 'Adam')
     return model
@@ -287,7 +402,8 @@ def train():
 	# I tried using the earlystopping callback, but now I run it for a fixed number of epochs and test to see which is best
         earlystopping =  EarlyStopping(monitor='val_loss', min_delta=0, patience=2, verbose=1, mode='auto')
 
-        res=model.fit_generator(data.generator(train_xs,train_ys,256), validation_data = (X, y), samples_per_epoch = 125*256, nb_epoch=epochs, verbose = 1  ,callbacks = [ SaveModel()])
+        #res=model.fit_generator(data.generator(train_xs,train_ys,256), validation_data = (X, y), samples_per_epoch = 125*256, nb_epoch=epochs, verbose = 1  ,callbacks = [ SaveModel()])
+        res=model.fit_generator(data.generator(train_xs,train_ys,112), validation_data = (X, y), samples_per_epoch = 112*400, nb_epoch=epochs, verbose = 1  ,callbacks = [ SaveModel()])
 
         # pickle and dump the history so we can graph it in a notebook
         history=res.history
